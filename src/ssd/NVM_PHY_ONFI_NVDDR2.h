@@ -7,6 +7,7 @@
 #include "../sim/Sim_Defs.h"
 #include "../nvm_chip/flash_memory/FlashTypes.h"
 #include "../nvm_chip/flash_memory/Flash_Command.h"
+#include "../rl/RL.h"
 #include "NVM_PHY_ONFI.h"
 #include "ONFI_Channel_NVDDR2.h"
 #include "Flash_Transaction_Queue.h"
@@ -21,11 +22,31 @@ namespace SSD_Components
 		ERASE_SETUP_COMPLETED
 	};
 
-    struct user_intervals_info_t
+    // struct user_intervals_info_t
+    // {
+    //     int64_t perivous_interval;
+    //     int64_t current_interval;
+    //     sim_time_type last_transation_time;
+
+    //     explicit user_intervals_info_t()
+    //     {}
+
+    //     explicit user_intervals_info_t(uint64_t prev_intv, uint64_t current_intv) : perivous_interval(prev_intv), current_interval(current_intv)
+    //     {}
+
+    //     ~user_intervals_info_t()
+    //     {
+    //         std::cout << "OMG" << std::endl;
+    //     }
+    // };
+
+    typedef struct user_intervals_info_t
     {
-        uint64_t perivous_interval;
-        uint64_t current_interval;
+        int64_t perivous_interval;
+        int64_t current_interval;
+        sim_time_type last_transation_time;
     };
+    
 
 	class DieBookKeepingEntry
 	{
@@ -44,7 +65,10 @@ namespace SSD_Components
 		sim_time_type Expected_finish_time;
 		sim_time_type RemainingExecTime;
 		sim_time_type DieInterleavedTime;//If the command transfer is done in die-interleaved mode, the transfer time is recorded in this temporary variable
-        std::map<uint16_t, user_intervals_info_t> users_intervals_map_;
+        
+        /// ADDED BY S.O.D ///
+        std::map<uint16_t, user_intervals_info_t*> users_intervals_map_;
+        std::map<uint16_t, Agent*> users_agent;
 
 		void PrepareSuspend()
 		{
@@ -102,6 +126,7 @@ namespace SSD_Components
 		void Validate_simulation_config();
 		void Start_simulation();
 
+        DieBookKeepingEntry* GetDieBookKeepingEntryFromTransations(NVM_Transaction_Flash* transactionList);
 		void Send_command_to_chip(std::list<NVM_Transaction_Flash*>& transactionList);
 		void Change_flash_page_status_for_preconditioning(const NVM::FlashMemory::Physical_Page_Address& page_address, const LPA_type lpa);
 		void Execute_simulator_event(MQSimEngine::Sim_Event*);
@@ -116,6 +141,10 @@ namespace SSD_Components
 		NVM_Transaction_Flash* Is_chip_busy_with_stream(NVM_Transaction_Flash* transaction);
 		bool Is_chip_busy(NVM_Transaction_Flash* transaction);
 		void Change_memory_status_preconditioning(const NVM::NVM_Memory_Address* address, const void* status_info);
+
+    protected:
+        void broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction) override;
+
 	private:
 		void transfer_read_data_from_chip(ChipBookKeepingEntry* chipBKE, DieBookKeepingEntry* dieBKE, NVM_Transaction_Flash* tr);
 		void perform_interleaved_cmd_data_transfer(NVM::FlashMemory::Flash_Chip* chip, DieBookKeepingEntry* bookKeepingEntry);
@@ -127,6 +156,21 @@ namespace SSD_Components
 		ChipBookKeepingEntry** bookKeepingTable;
 		Flash_Transaction_Queue *WaitingReadTX, *WaitingGCRead_TX, *WaitingMappingRead_TX;
 		std::list<DieBookKeepingEntry*> *WaitingCopybackWrites;
+
+        /// ADDED BY S.O.D ///
+
+        struct transations_infos
+        {
+            int64_t num_of_bound;
+            int64_t num_of_seens_tr;
+            int64_t total_exec_time;
+            std::list<NVM_Transaction_Infos> list_of_tr_infos;
+        };
+
+        // <transation id, <num of bound, num of trans seen, total exec time>>
+        std::map<int64_t, transations_infos> write_tr;
+
+        void feed_to_user_agent(NVM_Transaction_Flash* transaction, transations_infos infos);
 	};
 }
 

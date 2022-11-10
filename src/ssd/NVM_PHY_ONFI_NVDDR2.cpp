@@ -127,6 +127,17 @@ namespace SSD_Components {
 	{
 		channels[page_address.ChannelID]->Chips[page_address.ChipID]->Change_memory_status_preconditioning(&page_address, &lpa);
 	}
+
+    DieBookKeepingEntry* NVM_PHY_ONFI_NVDDR2::GetDieBookKeepingEntryFromTransations(NVM_Transaction_Flash* transaction_list)
+    {
+        ONFI_Channel_NVDDR2* target_channel = channels[transaction_list->Address.ChannelID];
+
+		NVM::FlashMemory::Flash_Chip* targetChip = target_channel->Chips[transaction_list->Address.ChipID];
+		ChipBookKeepingEntry* chipBKE = &bookKeepingTable[transaction_list->Address.ChannelID][transaction_list->Address.ChipID];
+		DieBookKeepingEntry* dieBKE = &chipBKE->Die_book_keeping_records[transaction_list->Address.DieID];
+
+        return dieBKE;
+    }
 	
 	void NVM_PHY_ONFI_NVDDR2::Send_command_to_chip(std::list<NVM_Transaction_Flash*>& transaction_list)
 	{
@@ -337,6 +348,45 @@ namespace SSD_Components {
 	{
 		channels[((NVM::FlashMemory::Physical_Page_Address*)address)->ChannelID]->Chips[((NVM::FlashMemory::Physical_Page_Address*)address)->ChipID]->Change_memory_status_preconditioning(address, status_info);
 	}
+
+    /// ADDED BY S.O.D ///
+    void NVM_PHY_ONFI_NVDDR2::broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction)
+    {
+        if (transaction->Type == SSD_Components::Transaction_Type::WRITE)
+        {
+            auto id = transaction->bound_id;
+            auto num_tr_in_same_bound = transaction->number_of_transaction_in_same_bound;
+
+            auto it = write_tr.find(id);
+            auto num = 0;
+            auto total_exec_time = 0;
+            transations_infos infos;
+            if (it == write_tr.end())
+            {
+                infos.num_of_seens_tr = 1;
+                infos.total_exec_time = transaction->STAT_execution_time;
+                infos.num_of_bound = num_tr_in_same_bound;
+            }
+            else
+            {
+                infos = it->second;
+                infos.num_of_seens_tr = ++it->second.num_of_seens_tr;
+                infos.total_exec_time = it->second.total_exec_time + transaction->STAT_execution_time;
+            }
+
+            infos.list_of_tr_infos.push_back(transaction->make_necessery_info());
+            write_tr[id] = infos;
+
+            // TODO: bad code we have some duplicate here
+            if (num == num_tr_in_same_bound)
+            {
+                feed_to_user_agent(transaction, infos);
+                write_tr.erase(id);
+            }
+        }
+
+        NVM_PHY_ONFI::broadcastTransactionServicedSignal(transaction);
+    }
 
 	void copy_read_data_to_transaction(NVM_Transaction_Flash_RD* read_transaction, NVM::FlashMemory::Flash_Command* command)
 	{
@@ -748,4 +798,33 @@ namespace SSD_Components {
 
 		}
 	}
+
+    /// ADDED BY S.O.D ///
+    void NVM_PHY_ONFI_NVDDR2::feed_to_user_agent(NVM_Transaction_Flash* transaction, transations_infos infos)
+    {
+        auto dieBKE = GetDieBookKeepingEntryFromTransations(transaction);
+        auto stream_id = transaction->Stream_id;
+        auto user_intervals = dieBKE->users_intervals_map_.find(stream_id);
+
+        auto current_interval = user_intervals->second->current_interval;
+        auto pervious_interval = user_intervals->second->perivous_interval;
+
+        auto init_state = transaction->init_state;
+        // TODO: is next_state correct? or we should fetch again from the source queue?
+        auto next_state = State::GetStateFrom(current_interval, pervious_interval);
+
+        // TODO: what about rewards?
+        float reward = 0.5;
+
+        auto user_agent = dieBKE->users_agent.find(stream_id);
+
+        // TODO: Check whetever is this possible or not
+        if (user_agent == dieBKE->users_agent.end())
+        {
+            dieBKE->users_agent[stream_id] = new Agent();
+            user_agent = dieBKE->users_agent.find(stream_id);
+        }
+
+        user_agent->second->updateQ(init_state, next_state, reward, transaction->chosed_action);
+    }
 }

@@ -1,5 +1,5 @@
 #include "TSU_OutofOrder.h"
-
+#include <assert.h>
 namespace SSD_Components
 {
 
@@ -158,6 +158,19 @@ void TSU_OutOfOrder::Schedule()
 	{
 		return;
 	}
+
+    // bool is_unvalid = false;
+    // for (auto it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
+    // {
+    //     std::cout << (*it)->Submit_time << " " << last << std::endl;
+    //     if ((*it)->Submit_time < last)
+    //         assert(false);
+    //         // is_unvalid = true;
+    //     last = (*it)->Submit_time;
+    // }
+    // // if (is_unvalid)
+    // //     std::cout << "HERE";
+    // std::cout << "\n---------------------------------------------" << std::endl;
 
 	for (std::list<NVM_Transaction_Flash *>::iterator it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
 	{

@@ -47,7 +47,10 @@ namespace SSD_Components
 		unsigned int die_no_per_chip;
 		unsigned int plane_no_per_die;
 		std::vector<TransactionServicedHandlerType> connectedTransactionServicedHandlers;
-		void broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction);
+
+        /// MODIFIED BY S.O.D ///
+		virtual void broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction);
+        
 		std::vector<ChannelIdleHandlerType> connectedChannelIdleHandlers;
 		void broadcastChannelIdleSignal(flash_channel_ID_type);
 		std::vector<ChipIdleHandlerType> connectedChipIdleHandlers;

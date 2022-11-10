@@ -72,6 +72,10 @@ public:
 
 	void Submit_transaction(NVM_Transaction_Flash *transaction)
 	{
+        // ////////////////////// ADDED BY S.O.D //////////////////////
+        transaction->set_transaction_submit_time_now();
+        // ////////////////////////////////////////////////////////////
+
 		transaction_receive_slots.push_back(transaction);
 	}
 
