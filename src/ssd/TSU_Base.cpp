@@ -331,11 +331,19 @@ namespace SSD_Components
                     auto stream_id = tr->Stream_id;
 
                     auto action = RL_choose_action(dieBKE, stream_id, transaction_bounds.front()->transaction_dispatch_slots);
-						//Simulator->Register_sim_event(Simulator->Time() + ftl)
-					
-					
-						//transaction_dispatch_slots = transaction_bounds.front()->transaction_dispatch_slots;
-					
+                    for (auto& tr : transaction_bounds.front()->transaction_dispatch_slots)
+                    {
+                        tr->chosed_action = action;
+                    }
+
+                    if (Action::IsActionToWait(action))
+                    {
+                        //Simulator->Register_sim_event(Simulator->Time() + ftl)
+                    }
+                    else
+                    {
+                        transaction_dispatch_slots = transaction_bounds.front()->transaction_dispatch_slots;
+                    }
 				}
 				else {
 					transaction_dispatch_slots = transaction_bounds.front()->transaction_dispatch_slots;

@@ -62,6 +62,13 @@ struct State
 struct Action
 {
     ActionE action;
+
+    static bool IsActionToWait(Action action)
+    {
+        if (action.action == ActionE::NO_WAIT)
+            return false;
+        return true;
+    }
 };
 
 struct StateActionSpace
