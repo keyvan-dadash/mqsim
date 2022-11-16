@@ -813,8 +813,39 @@ namespace SSD_Components {
         // TODO: is next_state correct? or we should fetch again from the source queue?
         auto next_state = State::GetStateFrom(current_interval, pervious_interval);
 
-        // TODO: what about rewards?
-        float reward = 0.5;
+        // TODO: what about rewards? should be hardcoded
+        float reward = 1;
+
+        bool found_same_stream_id_bound = false;
+        int64_t maximum_issue_time = std::numeric_limits<int64_t>::min();
+        for(const auto& info : infos.list_of_tr_infos) {
+            if (maximum_issue_time < info.Issue_time)
+                maximum_issue_time = info.Issue_time;
+        }
+
+        auto sourceQueue1 = TSUBase_->GetSourceQueue(Get_chip(transaction->Address.ChannelID, transaction->Address.ChipID));
+        std::list<TransactionBound*> transaction_bounds = TSUBase_->bound_transactions(sourceQueue1, false);
+
+        for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
+            auto tr = (*bound)->transaction_dispatch_slots.front();
+            if (tr->Stream_id != transaction->Stream_id || 
+                    tr->Address.BlockID != TSUBase_->ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID)
+                continue;
+            
+            // TODO: is this right? I mean should we check all transaction or just the transaction that are in same row.
+            found_same_stream_id_bound = true;
+            for (const auto& tran : (*bound)->transaction_dispatch_slots) {
+                // TODO: i think we should now hardcode this
+                if (std::abs(static_cast<int64_t>(tran->Issue_time) - static_cast<int64_t>(maximum_issue_time)) < W/2) {
+                    reward = 0.5;
+
+                    // TODO: one of the worst code i ever write. DONT USE GOTO
+                    goto breakoutter;
+                }
+            }
+        }
+
+breakoutter:
 
         auto user_agent = dieBKE->users_agent.find(stream_id);
 

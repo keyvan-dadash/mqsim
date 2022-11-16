@@ -75,9 +75,6 @@ TSU_Priority_OutOfOrder::TSU_Priority_OutOfOrder(const sim_object_id_type &id,
             GCEraseTRQueue[channelID][chipId].Set_id("GC_Erase_TR_Queue@" + std::to_string(channelID) + "@" + std::to_string(chipId));
         }
     }
-
-    /// ADDED BY S.O.D ///
-    _NVMController->TSUBase_ = this;
 }
 
 TSU_Priority_OutOfOrder::~TSU_Priority_OutOfOrder()

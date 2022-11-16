@@ -41,7 +41,7 @@ namespace SSD_Components
     //     }
     // };
 
-    typedef struct user_intervals_info_t
+    struct user_intervals_info_t
     {
         int64_t perivous_interval;
         int64_t current_interval;
@@ -118,6 +118,7 @@ namespace SSD_Components
 		void PrepareResume() { HasSuspend = false; }
 	};
 
+    class TSU_Base;
 	class NVM_PHY_ONFI_NVDDR2 : public NVM_PHY_ONFI
 	{
 	public:

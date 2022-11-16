@@ -7,7 +7,7 @@
 
 Agent::Agent()
 {
-    for (int i = 0; i < MAX_CURRENT_INT * MAX_PREV_INT; i++) {
+    for (int i = 0; i < C_MAX_CURRENT_INT * P_MAX_PREV_INT; i++) {
         for (int j = 0; j < MAX_ACTIONS; j++) {
             q_table_[i][j] = 0;
         }

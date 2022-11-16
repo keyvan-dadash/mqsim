@@ -18,19 +18,19 @@ enum ActionE
 
 enum CurrentInterval
 {
-    UNDER_HALF_W = 0,
-    UPPER_HALF_W,
+    C_UNDER_HALF_W = 0,
+    C_UPPER_HALF_W,
 
-    MAX_CURRENT_INT
+    C_MAX_CURRENT_INT
 };
 
 enum PreviousInterval
 {
-    UNDER_QUARTER_W = 0,
-    BETWEEN_QUARTER_AND_HALF_W,
-    UPPER_HALF_W,
+    P_UNDER_QUARTER_W = 0,
+    P_BETWEEN_QUARTER_AND_HALF_W,
+    P_UPPER_HALF_W,
 
-    MAX_PREV_INT
+    P_MAX_PREV_INT
 };
 
 struct State
@@ -44,16 +44,16 @@ struct State
         PreviousInterval previous_int;
 
         if (current_interval > W/2)
-            current_int = CurrentInterval::UPPER_HALF_W;
+            current_int = CurrentInterval::C_UPPER_HALF_W;
         else
-            current_int = CurrentInterval::UNDER_HALF_W;
+            current_int = CurrentInterval::C_UNDER_HALF_W;
         
         if (previous_interval > W/2)
-            previous_int = PreviousInterval::UPPER_HALF_W;
+            previous_int = PreviousInterval::P_UPPER_HALF_W;
         else if (previous_int > W/4 && previous_int < W/2)
-            previous_int = PreviousInterval::BETWEEN_QUARTER_AND_HALF_W;
+            previous_int = PreviousInterval::P_BETWEEN_QUARTER_AND_HALF_W;
         else
-            previous_int = PreviousInterval::UNDER_QUARTER_W;
+            previous_int = PreviousInterval::P_UNDER_QUARTER_W;
 
         return State
         {
@@ -93,7 +93,7 @@ class Agent
 
   private:
 
-    double q_table_[MAX_PREV_INT * MAX_CURRENT_INT][MAX_ACTIONS];
+    double q_table_[P_MAX_PREV_INT * C_MAX_CURRENT_INT][MAX_ACTIONS];
 
     double epsilon = 0.2;
 

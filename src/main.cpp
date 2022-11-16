@@ -9,9 +9,9 @@
 #include "exec/Host_System.h"
 #include "utils/rapidxml/rapidxml.hpp"
 #include "utils/DistributionTypes.h"
+#include "ssd/NVM_Transaction.h"
 
 using namespace std;
-
 
 void command_line_args(char* argv[], string& input_file_path, string& workload_file_path)
 {

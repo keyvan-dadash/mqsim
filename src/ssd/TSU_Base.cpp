@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <assert.h>
 
+#include "NVM_Transaction.h"
 #include "TSU_Base.h"
 
 #define TRTOSTR(TR) (TR->Type == Transaction_Type::READ ? "Read, " : (TR->Type == Transaction_Type::WRITE ? "Write, " : "Erase, ") )
@@ -10,6 +11,7 @@
 
 namespace SSD_Components
 {
+    GlobalCounter* GlobalCounter::instance_ = NULL;
 	TSU_Base* TSU_Base::_my_instance = NULL;
 
 	TSU_Base::TSU_Base(const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI_NVDDR2* NVMController, Flash_Scheduling_Type Type,
@@ -29,6 +31,9 @@ namespace SSD_Components
 		for (unsigned int channelID = 0; channelID < channel_count; channelID++) {
 			Round_robin_turn_of_channel[channelID] = 0;
 		}
+
+        /// ADDED BY S.O.D ///
+        _NVMController->TSUBase_ = this;
 	}
 
 	TSU_Base::~TSU_Base()
@@ -441,7 +446,7 @@ namespace SSD_Components
 		return false;
 	}
 
-    Action RL_choose_action(SSD_Components::DieBookKeepingEntry *dieBKE, stream_id_type stream_id, std::list<NVM_Transaction_Flash *>) {
+    Action TSU_Base::RL_choose_action(DieBookKeepingEntry *dieBKE, stream_id_type stream_id, std::list<NVM_Transaction_Flash *>) {
 
         // Create user agent if does not exists
         auto user_intervals = dieBKE->users_intervals_map_.find(stream_id);

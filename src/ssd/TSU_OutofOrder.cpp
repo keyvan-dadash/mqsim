@@ -40,9 +40,6 @@ TSU_OutOfOrder::TSU_OutOfOrder(const sim_object_id_type &id, FTL *ftl, NVM_PHY_O
 			GCEraseTRQueue[channelID][chip_cntr].Set_id("GC_Erase_TR_Queue@" + std::to_string(channelID) + "@" + std::to_string(chip_cntr));
 		}
 	}
-
-    /// ADDED BY S.O.D ///
-    _NVMController->TSUBase_ = this;
 }
 
 TSU_OutOfOrder::~TSU_OutOfOrder()

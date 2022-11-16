@@ -7,6 +7,7 @@
 #include "../nvm_chip/flash_memory/Flash_Chip.h"
 #include "../sim/Sim_Reporter.h"
 #include "FTL.h"
+#include "NVM_Transaction.h"
 #include "NVM_PHY_ONFI_NVDDR2.h"
 #include "Flash_Transaction_Queue.h"
 
@@ -35,6 +36,9 @@ public:
 //--------------------------------------------------------------------------
 
 class FTL;
+class NVM_PHY_ONFI_NVDDR2;
+class DieBookKeepingEntry;
+class GlobalCounter;
 class TSU_Base : public MQSimEngine::Sim_Object
 {
 public:
@@ -86,10 +90,15 @@ public:
 	virtual void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter);
 
     /// ADDED BY S.O.D ///
+    Action RL_choose_action(DieBookKeepingEntry *dieBKE, stream_id_type stream_id, std::list<NVM_Transaction_Flash *>);
     virtual Flash_Transaction_Queue* GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip) = 0;
+    FTL *ftl;
+
+    //------------------------------- ADDED BY MAEE -------------------------------------
+	std::list<TransactionBound*> bound_transactions(Flash_Transaction_Queue* sourceQueue1, bool suspensionRequired);
+	//-----------------------------------------------------------------------------------
 
 protected:
-	FTL *ftl;
 	NVM_PHY_ONFI_NVDDR2 *_NVMController;
 	Flash_Scheduling_Type type;
 	unsigned int channel_count;
@@ -125,9 +134,6 @@ protected:
 		}
 	}
 
-	//------------------------------- ADDED BY MAEE -------------------------------------
-	std::list<TransactionBound*> bound_transactions(Flash_Transaction_Queue* sourceQueue1, bool suspensionRequired);
-	//-----------------------------------------------------------------------------------
 private:
 	bool transaction_is_ready(NVM_Transaction_Flash* transaction)
 	{
