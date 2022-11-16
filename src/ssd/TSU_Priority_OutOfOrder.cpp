@@ -75,6 +75,9 @@ TSU_Priority_OutOfOrder::TSU_Priority_OutOfOrder(const sim_object_id_type &id,
             GCEraseTRQueue[channelID][chipId].Set_id("GC_Erase_TR_Queue@" + std::to_string(channelID) + "@" + std::to_string(chipId));
         }
     }
+
+    /// ADDED BY S.O.D ///
+    _NVMController->TSUBase_ = this;
 }
 
 TSU_Priority_OutOfOrder::~TSU_Priority_OutOfOrder()
@@ -552,4 +555,16 @@ bool TSU_Priority_OutOfOrder::service_erase_transaction(NVM::FlashMemory::Flash_
 
     return true;
 }
+
+/// ADDED BY S.O.D ///
+Flash_Transaction_Queue* TSU_Priority_OutOfOrder::GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip)
+{
+    if (UserWriteTRQueue[chip->ChannelID][chip->ChipID][IO_Flow_Priority_Class::URGENT].size() > 0)
+    {
+        return &UserWriteTRQueue[chip->ChannelID][chip->ChipID][IO_Flow_Priority_Class::URGENT];
+    }
+
+    return &UserWriteTRQueue[chip->ChannelID][chip->ChipID][nextPriorityClassWrite[chip->ChannelID][chip->ChipID]];
+}
+
 } // namespace SSD_Components

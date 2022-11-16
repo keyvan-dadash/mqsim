@@ -11,6 +11,7 @@
 #include "NVM_PHY_ONFI.h"
 #include "ONFI_Channel_NVDDR2.h"
 #include "Flash_Transaction_Queue.h"
+#include "TSU_Base.h"
 
 namespace SSD_Components
 {
@@ -141,6 +142,9 @@ namespace SSD_Components
 		NVM_Transaction_Flash* Is_chip_busy_with_stream(NVM_Transaction_Flash* transaction);
 		bool Is_chip_busy(NVM_Transaction_Flash* transaction);
 		void Change_memory_status_preconditioning(const NVM::NVM_Memory_Address* address, const void* status_info);
+
+        /// ADDED BY S.O.D ///
+        TSU_Base* TSUBase_;
 
     protected:
         void broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction) override;
