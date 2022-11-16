@@ -1,6 +1,10 @@
 #ifndef RL_H_
 #define RL_H_
 
+#include <random>
+#include <chrono>
+#include <vector>
+
 // TODO: we should define this in another way
 #define W 750000
 
@@ -81,15 +85,27 @@ class Agent
 {
   public:
 
+    Agent();
+
     Action chonseAction(State state);
 
-    void updateQ(State init_state, State next_state, int reward, Action action);
+    void updateQ(State init_state, State next_state, double reward, Action action);
 
   private:
 
     double q_table_[MAX_PREV_INT * MAX_CURRENT_INT][MAX_ACTIONS];
 
+    double epsilon = 0.2;
+
+    double gamma = 1.0;
+
+    double alpha = 0.99;
+
+    std::mt19937_64 rng;
+
     Action getMaxQ(State state);
+
+    std::vector<double> getNRandomNumber(int n, int start, int end);
 };
 
 #endif /* RL_H_ */
