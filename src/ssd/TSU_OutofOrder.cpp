@@ -150,7 +150,7 @@ void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
         if (tmp_transaction_dispatch_slots.size() == transaction->number_of_tr_during_action)
         {
             // bad reward
-            reward = -1;
+            reward = 0;
         }
         else
         {

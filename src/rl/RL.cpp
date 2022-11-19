@@ -24,6 +24,7 @@ Action Agent::chonseAction(State state)
         rand_number_vec = getNRandomNumber(1, 0, MAX_ACTIONS);
         int action = std::floor(rand_number_vec.at(0));
         ActionE random_action = static_cast<ActionE>(action);
+        epsilon *= 0.99;
         return Action {
             .action = random_action
         };
@@ -39,8 +40,8 @@ void Agent::updateQ(State init_state, State next_state, double reward, Action ac
     auto init_action_value = init_state_actions_value[static_cast<int>(action.action)];
     init_state_actions_value[static_cast<int>(action.action)] = init_action_value + \
         alpha * (reward + gamma * static_cast<double>(getMaxQ(next_state).action) - init_action_value);
-    alpha *= 0.999999;
-    // alpha *= 0.999;
+    // alpha *= 0.999999;
+    alpha *= 0.99;
     // std::cout << init_state_actions_value[static_cast<int>(action.action)] << std::endl;
     // print_qtable_debug();
 }

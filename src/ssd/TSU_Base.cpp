@@ -212,7 +212,7 @@ namespace SSD_Components
                 }
             }
 
-			for (int i = 0; i < plane_no_per_die / 2; i++) {
+			for (int i = 0; i < plane_no_per_die / 4; i++) {
 				for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
 					if (get_multiplane_command_length((*bound)->planeVector) == plane_no_per_die - i) {
                         // std::cout << "hoho" << std::endl;
