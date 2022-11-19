@@ -73,6 +73,59 @@ void TSU_OutOfOrder::Validate_simulation_config()
 
 void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
 {
+    std::cout << "hello out" << std::endl;
+    // for (std::list<NVM_Transaction_Flash *>::iterator it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
+	// {
+	// 	switch ((*it)->Type)
+	// 	{
+	// 	case Transaction_Type::READ:
+	// 		switch ((*it)->Source)
+	// 		{
+	// 		case Transaction_Source_Type::CACHE:
+	// 		case Transaction_Source_Type::USERIO:
+	// 			// UserReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		case Transaction_Source_Type::MAPPING:
+	// 			// MappingReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		case Transaction_Source_Type::GC_WL:
+	// 			// GCReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		default:
+	// 			PRINT_ERROR("TSU_OutOfOrder: unknown source type for a read transaction!")
+	// 		}
+	// 		break;
+	// 	case Transaction_Type::WRITE:
+	// 		switch ((*it)->Source)
+	// 		{
+	// 		case Transaction_Source_Type::CACHE:
+	// 		case Transaction_Source_Type::USERIO:
+	// 			UserWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		case Transaction_Source_Type::MAPPING:
+	// 			// MappingWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		case Transaction_Source_Type::GC_WL:
+	// 			// GCWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 			break;
+	// 		default:
+	// 			PRINT_ERROR("TSU_OutOfOrder: unknown source type for a write transaction!")
+	// 		}
+	// 		break;
+	// 	case Transaction_Type::ERASE:
+	// 		// GCEraseTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
+	// 		break;
+	// 	default:
+	// 		break;
+	// 	}
+	// }
+    // process_chip_requests((NVM::FlashMemory::Flash_Chip*)(event->Parameters));
+    // service_write_transaction((NVM::FlashMemory::Flash_Chip*)(event->Parameters));
+    //  opened_scheduling_reqs++;
+    //  Schedule();
+
+    auto chip = (NVM::FlashMemory::Flash_Chip*)(event->Parameters);
+    waiting_chip.push_back(chip);
 }
 
 void TSU_OutOfOrder::Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter)
@@ -141,23 +194,25 @@ void TSU_OutOfOrder::Report_results_in_XML(std::string name_prefix, Utils::XmlWr
 	xmlwriter.Write_close_tag();
 }
 
-void TSU_OutOfOrder::Schedule()
+void TSU_OutOfOrder::Schedule(bool should_skip_validation)
 {
-	opened_scheduling_reqs--;
-	if (opened_scheduling_reqs > 0)
-	{
-		return;
-	}
+    if (!should_skip_validation) {
+        opened_scheduling_reqs--;
+        if (opened_scheduling_reqs > 0)
+        {
+            return;
+        }
 
-	if (opened_scheduling_reqs < 0)
-	{
-		PRINT_ERROR("TSU_OutOfOrder: Illegal status!");
-	}
+        if (opened_scheduling_reqs < 0)
+        {
+            PRINT_ERROR("TSU_OutOfOrder: Illegal status!");
+        }
 
-	if (transaction_receive_slots.size() == 0)
-	{
-		return;
-	}
+        if (transaction_receive_slots.size() == 0)
+        {
+            return;
+        }
+    }
 
     // bool is_unvalid = false;
     // for (auto it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
@@ -217,6 +272,14 @@ void TSU_OutOfOrder::Schedule()
 			break;
 		}
 	}
+
+    for (auto it = waiting_chip.begin(); it != waiting_chip.end(); it++) {
+        if (_NVMController->Get_channel_status((*it)->ChannelID) == BusChannelStatus::IDLE) {
+            process_chip_requests((*it));
+            waiting_chip.erase(it);
+            return;
+        }
+    }
 
 	for (flash_channel_ID_type channelID = 0; channelID < channel_count; channelID++)
 	{

@@ -119,6 +119,8 @@ void TSU_Priority_OutOfOrder::Validate_simulation_config()
 
 void TSU_Priority_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
 {
+    std::cout << "hello prio" << std::endl;
+    Schedule();
 }
 
 void TSU_Priority_OutOfOrder::Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter)
@@ -193,7 +195,7 @@ void TSU_Priority_OutOfOrder::Report_results_in_XML(std::string name_prefix, Uti
     xmlwriter.Write_close_tag();
 }
 
-void TSU_Priority_OutOfOrder::Schedule()
+void TSU_Priority_OutOfOrder::Schedule(bool should_skip_validation)
 {
     opened_scheduling_reqs--;
     if (opened_scheduling_reqs > 0)

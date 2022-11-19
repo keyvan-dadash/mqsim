@@ -35,7 +35,7 @@ public:
 				   bool ProgramSuspensionEnabled);
 	~TSU_OutOfOrder();
 
-	void Schedule();
+	void Schedule(bool should_skip_validation = false);
 
 	void Start_simulation();
 	void Validate_simulation_config();

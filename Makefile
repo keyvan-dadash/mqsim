@@ -1,6 +1,6 @@
 CC        := g++
 LD        := g++
-CC_FLAGS := -std=c++17 -O3
+CC_FLAGS := -std=c++17 -g
 
 MODULES   := exec host nvm_chip nvm_chip/flash_memory sim ssd utils rl
 SRC_DIR   := $(addprefix src/,$(MODULES)) src

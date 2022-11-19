@@ -680,8 +680,9 @@ namespace SSD_Components
 			allocate_plane_for_user_write((NVM_Transaction_Flash_WR*)transaction);
 			//----------------------------- DEBUG BY MAEE ---------------------------------------------------------
 			//DEBUG_MAEE("AMU: " << transaction->Address.ChannelID << ", " << transaction->Address.ChipID << ", " << transaction->Address.DieID << ", " << transaction->Address.PlaneID)
-			bool target_plane_debug_enabled = (transaction->Address.ChannelID == target_debug_channel && transaction->Address.ChipID == target_debug_chip && transaction->Address.DieID == target_debug_die);
-			DieBookKeepingType* dbke = &block_manager->die_manager[transaction->Address.ChannelID][transaction->Address.ChipID][transaction->Address.DieID];
+			// bool target_plane_debug_enabled = (transaction->Address.ChannelID == target_debug_channel && transaction->Address.ChipID == target_debug_chip && transaction->Address.DieID == target_debug_die);
+			bool target_plane_debug_enabled = false;
+            DieBookKeepingType* dbke = &block_manager->die_manager[transaction->Address.ChannelID][transaction->Address.ChipID][transaction->Address.DieID];
 			if (target_plane_debug_enabled) {
 				if (dbke->Data_swf[1]->SuperblockID == 254 && dbke->Data_swf[0]->SuperblockID == 238) {
 					if (dbke->Data_swf[1]->Blocks[1]->Current_page_write_index == 14) {

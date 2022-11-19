@@ -56,6 +56,14 @@ namespace SSD_Components
 
 	void TSU_Base::handle_channel_idle_signal(flash_channel_ID_type channelID)
 	{
+        for (auto it = _my_instance->waiting_chip.begin(); it != _my_instance->waiting_chip.end(); it++) {
+            if (_my_instance->_NVMController->Get_channel_status((*it)->ChannelID) == BusChannelStatus::IDLE) {
+                _my_instance->process_chip_requests((*it));
+                _my_instance->waiting_chip.erase(it);
+                return;
+            }
+        }
+
 		for (unsigned int i = 0; i < _my_instance->chip_no_per_channel; i++) {
 			//The TSU does not check if the chip is idle or not since it is possible to suspend a busy chip and issue a new command
 			_my_instance->process_chip_requests(_my_instance->_NVMController->Get_chip(channelID, _my_instance->Round_robin_turn_of_channel[channelID]));
@@ -171,16 +179,18 @@ namespace SSD_Components
 	bool TSU_Base::issue_command_to_chip_using_RL(Flash_Transaction_Queue* sourceQueue1, Flash_Transaction_Queue* sourceQueue2, Transaction_Type transactionType, bool suspensionRequired)
 	{
 
+        // return basic_issue_command_to_chip(sourceQueue1, sourceQueue2, transactionType, suspensionRequired);
+
 		bool large_multiplane_found = false;
 		
 		sim_time_type minimum_initiate_time = MAXIMUM_TIME;
 
-        std::cout << "--------------------------------------------" << std::endl;
-        for (auto it = sourceQueue1->begin(); it != sourceQueue1->end(); it++)
-        {
-                    std::cout<< (*it)->Submit_time << "-" << (*it)->Address.ChannelID << ", " << (*it)->Address.ChipID << ", " << (*it)->Address.DieID << ": " << (*it)->Stream_id << std::endl;
-        }
-        std::cout << "--------------------------------------------" << std::endl;
+        // std::cout << "--------------------------------------------" << std::endl;
+        // for (auto it = sourceQueue1->begin(); it != sourceQueue1->end(); it++)
+        // {
+        //             std::cout<< (*it)->Submit_time << "-" << (*it)->Address.ChannelID << ", " << (*it)->Address.ChipID << ", " << (*it)->Address.DieID << ": " << (*it)->Stream_id << std::endl;
+        // }
+        // std::cout << "--------------------------------------------" << std::endl;
 
         //return basic_issue_command_to_chip(sourceQueue1, sourceQueue2, transactionType, suspensionRequired);
         //basic_issue_command_to_chip()
@@ -215,111 +225,14 @@ namespace SSD_Components
                 dieBKE->users_intervals_map_[stream_id] = tmp;
             }
         }
-
-        // For debug purpose
-        std::map<stream_id_type, bool> printed_streams;
-        for (auto it = sourceQueue1->begin(); it != sourceQueue1->end(); it++)
-        {
-            auto stream_id = (*it)->Stream_id;
-            auto it_tmp = printed_streams.find(stream_id);
-            if (it_tmp == printed_streams.end())
-                printed_streams[stream_id] = true;
-            else
-                continue;
-
-            auto dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations(*it);
-            std::cout << "User with StreamID " << stream_id << "\n";
-            for (auto it_tmp = sourceQueue1->begin(); it_tmp != sourceQueue1->end(); it_tmp++)
-            {
-                if ((*it_tmp)->Stream_id == stream_id)
-                {
-                    std::cout << (*it_tmp)->Submit_time << " ";
-                }
-            }
-            std::cout << "\n";
-            auto isInDie = dieBKE->users_intervals_map_.find(stream_id);
-            std::cout << "Current intv " << isInDie->second->current_interval << " ";
-            std::cout << "Prev intv " << isInDie->second->perivous_interval << std::endl;
-            if (isInDie->second->current_interval < 0 || isInDie->second->perivous_interval < 0)
-                assert(false);
-            std::cout << "-------------------------------------------------------" << std::endl;
-        }
-
-                //return basic_issue_command_to_chip(sourceQueue1, sourceQueue2, transactionType, suspensionRequired);
-
-
-        // for (auto it = sourceQueue1->begin(); it != sourceQueue1->end(); it++)
-        // {
-        //     auto dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations(*it);
-        //     auto stream_id = (*it)->Stream_id;
-        //     auto isInDie = dieBKE->users_intervals_map_.find(stream_id);
-        //     if (isInDie == dieBKE->users_intervals_map_.end())
-        //     {
-        //         user_intervals_info_t uiit(0, (*it)->Submit_time);
-        //         uiit.last_transation_time = (*it)->Submit_time;
-        //         dieBKE->users_intervals_map_.insert(std::make_pair(stream_id, std::move(uiit)));
-        //         std::cout << "HERE " << dieBKE->users_intervals_map_[stream_id].last_transation_time << std::endl;
-        //     }
-        //     else
-        //     {
-        //         std::cout << isInDie->second.last_transation_time << std::endl;
-        //         isInDie->second.perivous_interval = isInDie->second.current_interval;
-        //         // if (isInDie->second.perivous_interval < 0)
-        //         // {
-        //         //     std::cout << isInDie->second.last_transation_time << std::endl;
-        //         //     std::cout << isInDie->second.current_interval << std::endl;
-        //         //     std::cout << isInDie->second.perivous_interval << std::endl;
-        //         //     for (auto itt = sourceQueue1->begin(); itt != sourceQueue1->end(); itt++)
-        //         //     {
-        //         //         std::cout << (*itt)->Submit_time << " ";
-        //         //     }
-        //         //     std::cout << std::endl;
-        //         //     assert(false);
-        //         // }
-        //         isInDie->second.current_interval = (*it)->Submit_time - isInDie->second.last_transation_time;
-        //         std::cout << (*it)->Submit_time << " " << isInDie->second.last_transation_time << std::endl;
-        //         if (isInDie->second.current_interval < 0)
-        //         {
-        //             for (auto it_tmp = sourceQueue1->begin(); it_tmp != sourceQueue1->end(); it_tmp++)
-        //             {
-        //                 std::cout << (*it_tmp)->Submit_time << " ";
-        //             }
-        //             std::cout << std::endl;
-        //             //std::cout << (*it)->Submit_time << " " << isInDie->second.last_transation_time << std::endl;
-        //             assert(false);
-        //         }
-        //         isInDie->second.last_transation_time = (*it)->Submit_time;
-        //     }
-        // }
-
-        // For debug purpose
-        // for (auto it = sourceQueue1->begin(); it != sourceQueue1->end(); it++)
-        // {
-        //     auto stream_id = (*it)->Stream_id;
-        //     auto dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations(*it);
-        //     std::cout << "User with StreamID " << stream_id << "\n";
-        //     for (auto it_tmp = sourceQueue1->begin(); it_tmp != sourceQueue1->end(); it_tmp++)
-        //     {
-        //         if ((*it_tmp)->Stream_id == stream_id)
-        //         {
-        //             std::cout << (*it_tmp)->Submit_time << " ";
-        //         }
-        //     }
-        //     std::cout << "\n";
-        //     auto isInDie = dieBKE->users_intervals_map_.find(stream_id);
-        //     std::cout << "Current intv " << isInDie->second.current_interval << " ";
-        //     std::cout << "Prev intv " << isInDie->second.perivous_interval << std::endl;
-        //     if (isInDie->second.current_interval < 0 || isInDie->second.perivous_interval < 0)
-        //         assert(false);
-        //     std::cout << "-------------------------------------------------------" << std::endl;
-        // }
-
+        
         std::list<TransactionBound*> transaction_bounds = bound_transactions(sourceQueue1, suspensionRequired);
 
 		if (transaction_bounds.size() > 0) {
-			for (int i = 0; i < plane_no_per_die; i++) {
+			for (int i = 0; i < plane_no_per_die / 2; i++) {
 				for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
 					if (get_multiplane_command_length((*bound)->planeVector) == plane_no_per_die - i) {
+                        // std::cout << "hoho" << std::endl;
 						if (minimum_initiate_time > (*bound)->minimum_initiate_time) {
 							minimum_initiate_time = (*bound)->minimum_initiate_time;
 							large_multiplane_found = true;
@@ -341,8 +254,12 @@ namespace SSD_Components
                         tr->chosed_action = action;
                     }
 
+                    std::cout << action.action << std::endl;
+
                     if (Action::IsActionToWait(action))
                     {
+                        Simulator->Register_sim_event(Simulator->Time() + (sim_time_type)W/2, this, 
+                            (void*)_NVMController->Get_chip(tr->Address.ChannelID, tr->Address.ChipID), 0);
                         //Simulator->Register_sim_event(Simulator->Time() + ftl)
                     }
                     else

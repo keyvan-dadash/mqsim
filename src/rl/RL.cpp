@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iostream>
 #include <chrono>
 #include <random>
 #include <vector>
@@ -21,9 +22,8 @@ Action Agent::chonseAction(State state)
 
     if (random_number < epsilon) {
         rand_number_vec = getNRandomNumber(1, 0, MAX_ACTIONS);
-        auto actions_value = q_table_[(state.current_int + 1) * (state.previous_int + 1)];
         int action = std::floor(rand_number_vec.at(0));
-        ActionE random_action = static_cast<ActionE>(actions_value[action]);
+        ActionE random_action = static_cast<ActionE>(action);
         return Action {
             .action = random_action
         };
@@ -39,6 +39,7 @@ void Agent::updateQ(State init_state, State next_state, double reward, Action ac
     init_state_actions_value[static_cast<int>(action.action)] = init_action_value + \
         alpha * (reward + gamma * static_cast<double>(getMaxQ(next_state).action) - init_action_value);
     alpha *= 0.999999;
+    std::cout << init_state_actions_value[static_cast<int>(action.action)] << std::endl;
 }
 
 Action Agent::getMaxQ(State state)

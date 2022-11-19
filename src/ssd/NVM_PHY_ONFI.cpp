@@ -34,12 +34,12 @@ namespace SSD_Components {
 	*/
 	void NVM_PHY_ONFI::broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction)
 	{
-        if (transaction->Type == SSD_Components::Transaction_Type::WRITE)
-        {
-        std::cout << "------------Broad------------" << std::endl;
-std::cout<< transaction->Submit_time << "-" << transaction->Address.ChannelID << ", " << transaction->Address.ChipID << ", " << transaction->Address.DieID << ": " << transaction->Stream_id << std::endl;
-        std::cout << "\n-----------------------------" << std::endl;
-        }
+//         if (transaction->Type == SSD_Components::Transaction_Type::WRITE)
+//         {
+//         std::cout << "------------Broad------------" << std::endl;
+// std::cout<< transaction->Submit_time << "-" << transaction->Address.ChannelID << ", " << transaction->Address.ChipID << ", " << transaction->Address.DieID << ": " << transaction->Stream_id << std::endl;
+//         std::cout << "\n-----------------------------" << std::endl;
+//         }
 
 
         //std::cout << get_transation_type_str(transaction->Type) << std::endl;

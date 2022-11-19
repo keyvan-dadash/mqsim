@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdexcept>
 #include "../sim/Engine.h"
 #include "NVM_PHY_ONFI_NVDDR2.h"
@@ -802,6 +803,8 @@ namespace SSD_Components {
     /// ADDED BY S.O.D ///
     void NVM_PHY_ONFI_NVDDR2::feed_to_user_agent(NVM_Transaction_Flash* transaction, transations_infos infos)
     {
+        // TODO: seems we dont get here
+        assert(false);
         auto dieBKE = GetDieBookKeepingEntryFromTransations(transaction);
         auto stream_id = transaction->Stream_id;
         auto user_intervals = dieBKE->users_intervals_map_.find(stream_id);

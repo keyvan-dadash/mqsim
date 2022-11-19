@@ -86,13 +86,14 @@ public:
 	/* Shedules the transactions currently stored in inputTransactionSlots. The transactions could
 		* be mixes of reads, writes, and erases.
 		*/
-	virtual void Schedule() = 0;
+	virtual void Schedule(bool should_skip_validation = false) = 0;
 	virtual void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter);
 
     /// ADDED BY S.O.D ///
     Action RL_choose_action(DieBookKeepingEntry *dieBKE, stream_id_type stream_id, std::list<NVM_Transaction_Flash *>);
     virtual Flash_Transaction_Queue* GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip) = 0;
     FTL *ftl;
+    std::vector<NVM::FlashMemory::Flash_Chip*> waiting_chip;
 
     //------------------------------- ADDED BY MAEE -------------------------------------
 	std::list<TransactionBound*> bound_transactions(Flash_Transaction_Queue* sourceQueue1, bool suspensionRequired);
