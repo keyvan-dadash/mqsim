@@ -34,17 +34,33 @@ Action Agent::chonseAction(State state)
 
 void Agent::updateQ(State init_state, State next_state, double reward, Action action)
 {
-    auto init_state_actions_value = q_table_[(init_state.current_int + 1) * (init_state.previous_int + 1)];
+    auto init_state_actions_value = q_table_[init_state.current_int * 3 + init_state.previous_int];
+    // std::cout << "recv action is " << action.action << std::endl;
     auto init_action_value = init_state_actions_value[static_cast<int>(action.action)];
     init_state_actions_value[static_cast<int>(action.action)] = init_action_value + \
         alpha * (reward + gamma * static_cast<double>(getMaxQ(next_state).action) - init_action_value);
     alpha *= 0.999999;
-    std::cout << init_state_actions_value[static_cast<int>(action.action)] << std::endl;
+    // alpha *= 0.999;
+    // std::cout << init_state_actions_value[static_cast<int>(action.action)] << std::endl;
+    // print_qtable_debug();
+}
+
+void Agent::print_qtable_debug()
+{
+    std::cout << "\n---------------------------------------------------------------------------" << std::endl;
+    for (int i = 0; i < MAX_ACTIONS; i++) {
+        std::cout << i << " : ";
+        for (int j = 0; j < P_MAX_PREV_INT * C_MAX_CURRENT_INT; j++) {
+            std::cout << q_table_[j][i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "---------------------------------------------------------------------------" << std::endl;
 }
 
 Action Agent::getMaxQ(State state)
 {
-    auto actions_value = q_table_[(state.current_int + 1) * (state.previous_int + 1)];
+    auto actions_value = q_table_[state.current_int  * 3 + state.previous_int];
     
     double max = -9999999;
     int action = -1;

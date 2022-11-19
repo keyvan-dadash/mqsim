@@ -556,14 +556,17 @@ bool TSU_Priority_OutOfOrder::service_erase_transaction(NVM::FlashMemory::Flash_
 }
 
 /// ADDED BY S.O.D ///
-Flash_Transaction_Queue* TSU_Priority_OutOfOrder::GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip)
+Flash_Transaction_Queue* TSU_Priority_OutOfOrder::GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip, Flash_Transaction_Queue& sourceQueue1)
 {
+    Flash_Transaction_Queue* source1;
     if (UserWriteTRQueue[chip->ChannelID][chip->ChipID][IO_Flow_Priority_Class::URGENT].size() > 0)
     {
-        return &UserWriteTRQueue[chip->ChannelID][chip->ChipID][IO_Flow_Priority_Class::URGENT];
+        source1 = &UserWriteTRQueue[chip->ChannelID][chip->ChipID][IO_Flow_Priority_Class::URGENT];
     }
 
-    return &UserWriteTRQueue[chip->ChannelID][chip->ChipID][nextPriorityClassWrite[chip->ChannelID][chip->ChipID]];
+    source1 = &UserWriteTRQueue[chip->ChannelID][chip->ChipID][nextPriorityClassWrite[chip->ChannelID][chip->ChipID]];
+
+    return source1;
 }
 
 } // namespace SSD_Components

@@ -110,6 +110,7 @@ namespace SSD_Components
 
 		NVM::FlashMemory::Physical_Page_Address addr;
 		while (true) {
+            // std::cout << "hellooooo2 " << sourceQueue1_copy.size() << std::endl;
 			if (sourceQueue1_copy.size() > 0) {
 				addr = sourceQueue1_copy.front()->Address;
 			}
@@ -125,6 +126,7 @@ namespace SSD_Components
 
 			TransactionBound* tr_bound = new TransactionBound(offset, 0);
 			for (Flash_Transaction_Queue::iterator it = sourceQueue1_copy.begin(); it != sourceQueue1_copy.end();) {
+                // std::cout << transaction_is_ready(*it) << std::endl;
 				if (transaction_is_ready(*it) && (*it)->Address.DieID == addr.DieID &&
 					(PPA_type)(*it)->Address.BlockID * block_size + (*it)->Address.PageID == offset &&
 					!(tr_bound->planeVector & 1 << (*it)->Address.PlaneID)) {
@@ -141,7 +143,14 @@ namespace SSD_Components
 						break;
 					}
 					continue;
-				}
+				} else if (!transaction_is_ready(*it))
+                {
+                    sourceQueue1_copy.remove(it++);
+                    if (sourceQueue1_copy.size() < 1) {
+						break;
+                    }
+                    continue;
+                }
 				it++;
 			}
 
@@ -198,7 +207,7 @@ namespace SSD_Components
                 if (!dieBKE->should_die_wait && dieBKE->should_die_schedule_fast) {
                     transaction_dispatch_slots = (*bound)->transaction_dispatch_slots;
                     // wrong
-                    std::cout << "Am i here?" << std::endl;
+                    // std::cout << "Am i here?" << std::endl;
                     return send_transaction_dispatch_slots_to_chip(sourceQueue1);
                 }
             }
@@ -239,8 +248,8 @@ namespace SSD_Components
 			        return false; 
                 }
 
-
-				if (tr->Address.BlockID == ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID) {
+                // std::cout << ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID << " " << tr->Address.SuperblockID << std::endl;
+				if (tr->Address.SuperblockID == ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID) {
                     auto dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations(tr);
                     assert(dieBKE->should_die_wait != true);
                     auto stream_id = tr->Stream_id;
@@ -249,9 +258,10 @@ namespace SSD_Components
                     for (auto& tran : tmp_transaction_dispatch_slots)
                     {
                         tran->chosed_action = action;
+                        tran->does_tran_touched_by_rl = true;
                     }
 
-                    std::cout << action.action << std::endl;
+                    // std::cout << action.action << std::endl;
 
                     if (Action::IsActionToWait(action))
                     {

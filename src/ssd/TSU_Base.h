@@ -91,9 +91,14 @@ public:
 
     /// ADDED BY S.O.D ///
     Action RL_choose_action(DieBookKeepingEntry *dieBKE, stream_id_type stream_id, std::list<NVM_Transaction_Flash *>);
-    virtual Flash_Transaction_Queue* GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip) = 0;
+    virtual Flash_Transaction_Queue* GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip, Flash_Transaction_Queue& sourceQueue1) = 0;
     FTL *ftl;
     std::vector<NVM::FlashMemory::Flash_Chip*> waiting_chip;
+
+    /// ADDED BY S.O.D ///
+    void print_debug_info(Flash_Transaction_Queue *sourceQueue1);
+    void extract_and_save_intervals(Flash_Transaction_Queue *sourceQueue1);
+    bool send_transaction_dispatch_slots_to_chip(Flash_Transaction_Queue *sourceQueue1);
 
     //------------------------------- ADDED BY MAEE -------------------------------------
 	std::list<TransactionBound*> bound_transactions(Flash_Transaction_Queue* sourceQueue1, bool suspensionRequired);
@@ -134,11 +139,6 @@ protected:
 			}
 		}
 	}
-
-    /// ADDED BY S.O.D ///
-    void print_debug_info(Flash_Transaction_Queue *sourceQueue1);
-    void extract_and_save_intervals(Flash_Transaction_Queue *sourceQueue1);
-    bool send_transaction_dispatch_slots_to_chip(Flash_Transaction_Queue *sourceQueue1);
 
 private:
 	bool transaction_is_ready(NVM_Transaction_Flash* transaction)

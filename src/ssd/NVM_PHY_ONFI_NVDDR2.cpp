@@ -353,7 +353,9 @@ namespace SSD_Components {
     /// ADDED BY S.O.D ///
     void NVM_PHY_ONFI_NVDDR2::broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction)
     {
-        if (transaction->Type == SSD_Components::Transaction_Type::WRITE && !transaction->does_reward_calculated)
+        if (transaction->Type == SSD_Components::Transaction_Type::WRITE && 
+                !transaction->does_reward_calculated &&
+                transaction->does_tran_touched_by_rl)
         {
             auto id = transaction->bound_id;
             auto num_tr_in_same_bound = transaction->number_of_transaction_in_same_bound;
@@ -371,15 +373,15 @@ namespace SSD_Components {
             else
             {
                 infos = it->second;
-                infos.num_of_seens_tr = ++it->second.num_of_seens_tr;
+                infos.num_of_seens_tr = it->second.num_of_seens_tr + 1;
                 infos.total_exec_time = it->second.total_exec_time + transaction->STAT_execution_time;
             }
 
             infos.list_of_tr_infos.push_back(transaction->make_necessery_info());
             write_tr[id] = infos;
-
+            num = infos.num_of_seens_tr;
             // TODO: bad code we have some duplicate here
-            if (num == num_tr_in_same_bound)
+            if (num >= num_tr_in_same_bound)
             {
                 feed_to_user_agent(transaction, infos);
                 write_tr.erase(id);
@@ -804,7 +806,11 @@ namespace SSD_Components {
     void NVM_PHY_ONFI_NVDDR2::feed_to_user_agent(NVM_Transaction_Flash* transaction, transations_infos infos)
     {
         // TODO: seems we dont get here
-        assert(false);
+        // assert(false);
+        Flash_Transaction_Queue sourceQueue1;
+        auto tmp = TSUBase_->GetSourceQueue(Get_chip(transaction->Address.ChannelID, transaction->Address.ChipID), sourceQueue1);
+        TSUBase_->extract_and_save_intervals(&sourceQueue1);
+
         auto dieBKE = GetDieBookKeepingEntryFromTransations(transaction);
         auto stream_id = transaction->Stream_id;
         auto user_intervals = dieBKE->users_intervals_map_.find(stream_id);
@@ -822,31 +828,57 @@ namespace SSD_Components {
         bool found_same_stream_id_bound = false;
         int64_t maximum_issue_time = std::numeric_limits<int64_t>::min();
         for(const auto& info : infos.list_of_tr_infos) {
-            if (maximum_issue_time < info.Issue_time)
+            // std::cout << info.Issue_time << std::endl;
+            if (maximum_issue_time < static_cast<int64_t>(info.Issue_time))
                 maximum_issue_time = info.Issue_time;
         }
+        // std::cout << maximum_issue_time << std::endl;
 
-        auto sourceQueue1 = TSUBase_->GetSourceQueue(Get_chip(transaction->Address.ChannelID, transaction->Address.ChipID));
-        std::list<TransactionBound*> transaction_bounds = TSUBase_->bound_transactions(sourceQueue1, false);
+        // std::list<TransactionBound*> transaction_bounds = TSUBase_->bound_transactions(sourceQueue1, false);
+        // std::cout << "hellooooo" << std::endl;
 
-        for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
-            auto tr = (*bound)->transaction_dispatch_slots.front();
+        for (const auto& tr : sourceQueue1)
+        {
             if (tr->Stream_id != transaction->Stream_id || 
-                    tr->Address.BlockID != TSUBase_->ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID)
+                    tr->Address.SuperblockID != TSUBase_->ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID)
                 continue;
             
             // TODO: is this right? I mean should we check all transaction or just the transaction that are in same row.
             found_same_stream_id_bound = true;
-            for (const auto& tran : (*bound)->transaction_dispatch_slots) {
+
+            // for (const auto& tran : (*bound)->transaction_dispatch_slots) {
                 // TODO: i think we should now hardcode this
-                if (std::abs(static_cast<int64_t>(tran->Issue_time) - static_cast<int64_t>(maximum_issue_time)) < W/2) {
+                // std::cout << static_cast<int64_t>(tr->Issue_time) - static_cast<int64_t>(maximum_issue_time) << std::endl;
+                // std::cout << tr->Issue_time << std::endl;
+                // std::cout << maximum_issue_time << std::endl;
+                if (std::abs(static_cast<int64_t>(tr->Issue_time) - static_cast<int64_t>(maximum_issue_time)) < W/2) {
+                    // assert(false);
                     reward = 0.5;
 
                     // TODO: one of the worst code i ever write. DONT USE GOTO
                     goto breakoutter;
                 }
-            }
+            // }
         }
+
+        // for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
+        //     auto tr = (*bound)->transaction_dispatch_slots.front();
+        //     if (tr->Stream_id != transaction->Stream_id || 
+        //             tr->Address.BlockID != TSUBase_->ftl->BlockManager->Get_die_bookkeeping_entry(tr->Address)->plane_manager_die->Data_wf[tr->Stream_id]->BlockID)
+        //         continue;
+            
+        //     // TODO: is this right? I mean should we check all transaction or just the transaction that are in same row.
+        //     found_same_stream_id_bound = true;
+        //     for (const auto& tran : (*bound)->transaction_dispatch_slots) {
+        //         // TODO: i think we should now hardcode this
+        //         if (std::abs(static_cast<int64_t>(tran->Issue_time) - static_cast<int64_t>(maximum_issue_time)) < W/2) {
+        //             reward = 0.5;
+
+        //             // TODO: one of the worst code i ever write. DONT USE GOTO
+        //             goto breakoutter;
+        //         }
+        //     }
+        // }
 
 breakoutter:
 

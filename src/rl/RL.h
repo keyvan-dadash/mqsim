@@ -50,7 +50,7 @@ struct State
         
         if (previous_interval > W/2)
             previous_int = PreviousInterval::P_UPPER_HALF_W;
-        else if (previous_int > W/4 && previous_int < W/2)
+        else if (previous_interval > W/4 && previous_interval < W/2)
             previous_int = PreviousInterval::P_BETWEEN_QUARTER_AND_HALF_W;
         else
             previous_int = PreviousInterval::P_UNDER_QUARTER_W;
@@ -90,6 +90,8 @@ class Agent
     Action chonseAction(State state);
 
     void updateQ(State init_state, State next_state, double reward, Action action);
+
+    void print_qtable_debug();
 
   private:
 

@@ -73,7 +73,7 @@ void TSU_OutOfOrder::Validate_simulation_config()
 
 void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
 {
-    std::cout << "hello out" << std::endl;
+    // std::cout << "hello out" << std::endl;
     auto dieBKE = (DieBookKeepingEntry*)(event->Parameters);
     dieBKE->should_die_schedule_fast = true;
     dieBKE->should_die_wait = false;
@@ -125,10 +125,10 @@ void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
     // TODO: what about rewards? should be hardcoded
     float reward = 1;
 
-    std::cout << dieBKE << "\n----------------------- " << transaction_bounds.size() << std::endl;
+    // std::cout << dieBKE << "\n----------------------- " << transaction_bounds.size() << std::endl;
     for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
         auto tmp_dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations((*bound)->transaction_dispatch_slots.front());
-        std::cout << tmp_dieBKE << std::endl;
+        // std::cout << tmp_dieBKE << std::endl;
         if (dieBKE != tmp_dieBKE)
             continue;
         found_desire_die = true;
@@ -151,6 +151,10 @@ void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
         {
             // bad reward
             reward = -1;
+        }
+        else
+        {
+            // std::cout << "hoho" << std::endl;
         }
         for (const auto& tran : tmp_transaction_dispatch_slots)
         {
@@ -541,9 +545,40 @@ bool TSU_OutOfOrder::service_erase_transaction(NVM::FlashMemory::Flash_Chip *chi
 }
 
 /// ADDED BY S.O.D ///
-Flash_Transaction_Queue* TSU_OutOfOrder::GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip)
+Flash_Transaction_Queue* TSU_OutOfOrder::GetSourceQueue(NVM::FlashMemory::Flash_Chip *chip, Flash_Transaction_Queue& sourceQueue1)
 {
-    return &UserWriteTRQueue[chip->ChannelID][chip->ChipID];;
+    sourceQueue1 = UserWriteTRQueue[chip->ChannelID][chip->ChipID];
+
+    for (std::list<NVM_Transaction_Flash *>::iterator it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
+	{
+		switch ((*it)->Type)
+		{
+		case Transaction_Type::READ:
+			break;
+		case Transaction_Type::WRITE:
+			switch ((*it)->Source)
+			{
+			case Transaction_Source_Type::CACHE:
+			case Transaction_Source_Type::USERIO: {
+                if ((*it)->Address.ChannelID == chip->ChannelID && (*it)->Address.ChipID == chip->ChipID)
+				sourceQueue1.push_back((*it));
+				break;
+            }
+			case Transaction_Source_Type::MAPPING:
+			case Transaction_Source_Type::GC_WL:
+				break;
+			default:
+				PRINT_ERROR("TSU_OutOfOrder: unknown source type for a write transaction!")
+			}
+			break;
+		case Transaction_Type::ERASE:
+			break;
+		default:
+			break;
+		}
+	}
+
+    return NULL;
 }
 
 } // namespace SSD_Components
