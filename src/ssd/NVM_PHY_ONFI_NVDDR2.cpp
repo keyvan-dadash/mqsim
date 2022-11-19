@@ -353,7 +353,7 @@ namespace SSD_Components {
     /// ADDED BY S.O.D ///
     void NVM_PHY_ONFI_NVDDR2::broadcastTransactionServicedSignal(NVM_Transaction_Flash* transaction)
     {
-        if (transaction->Type == SSD_Components::Transaction_Type::WRITE)
+        if (transaction->Type == SSD_Components::Transaction_Type::WRITE && !transaction->does_reward_calculated)
         {
             auto id = transaction->bound_id;
             auto num_tr_in_same_bound = transaction->number_of_transaction_in_same_bound;

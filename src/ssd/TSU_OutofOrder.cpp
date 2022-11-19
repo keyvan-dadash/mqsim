@@ -74,58 +74,103 @@ void TSU_OutOfOrder::Validate_simulation_config()
 void TSU_OutOfOrder::Execute_simulator_event(MQSimEngine::Sim_Event *event)
 {
     std::cout << "hello out" << std::endl;
-    // for (std::list<NVM_Transaction_Flash *>::iterator it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
-	// {
-	// 	switch ((*it)->Type)
-	// 	{
-	// 	case Transaction_Type::READ:
-	// 		switch ((*it)->Source)
-	// 		{
-	// 		case Transaction_Source_Type::CACHE:
-	// 		case Transaction_Source_Type::USERIO:
-	// 			// UserReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		case Transaction_Source_Type::MAPPING:
-	// 			// MappingReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		case Transaction_Source_Type::GC_WL:
-	// 			// GCReadTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		default:
-	// 			PRINT_ERROR("TSU_OutOfOrder: unknown source type for a read transaction!")
-	// 		}
-	// 		break;
-	// 	case Transaction_Type::WRITE:
-	// 		switch ((*it)->Source)
-	// 		{
-	// 		case Transaction_Source_Type::CACHE:
-	// 		case Transaction_Source_Type::USERIO:
-	// 			UserWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		case Transaction_Source_Type::MAPPING:
-	// 			// MappingWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		case Transaction_Source_Type::GC_WL:
-	// 			// GCWriteTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 			break;
-	// 		default:
-	// 			PRINT_ERROR("TSU_OutOfOrder: unknown source type for a write transaction!")
-	// 		}
-	// 		break;
-	// 	case Transaction_Type::ERASE:
-	// 		// GCEraseTRQueue[(*it)->Address.ChannelID][(*it)->Address.ChipID].push_back((*it));
-	// 		break;
-	// 	default:
-	// 		break;
-	// 	}
-	// }
-    // process_chip_requests((NVM::FlashMemory::Flash_Chip*)(event->Parameters));
-    // service_write_transaction((NVM::FlashMemory::Flash_Chip*)(event->Parameters));
-    //  opened_scheduling_reqs++;
-    //  Schedule();
-
-    auto chip = (NVM::FlashMemory::Flash_Chip*)(event->Parameters);
+    auto dieBKE = (DieBookKeepingEntry*)(event->Parameters);
+    dieBKE->should_die_schedule_fast = true;
+    dieBKE->should_die_wait = false;
+    auto chip = dieBKE->releated_chip;
     waiting_chip.push_back(chip);
+
+    auto current_write_queue = UserWriteTRQueue[chip->ChannelID][chip->ChipID];
+    // TODO: should we push new tr?
+    for (std::list<NVM_Transaction_Flash *>::iterator it = transaction_receive_slots.begin(); it != transaction_receive_slots.end(); it++)
+	{
+		switch ((*it)->Type)
+		{
+		case Transaction_Type::READ:
+			break;
+		case Transaction_Type::WRITE:
+			switch ((*it)->Source)
+			{
+			case Transaction_Source_Type::CACHE:
+			case Transaction_Source_Type::USERIO: {
+                if ((*it)->Address.ChannelID == chip->ChannelID && (*it)->Address.ChipID == chip->ChipID)
+				current_write_queue.push_back((*it));
+				break;
+            }
+			case Transaction_Source_Type::MAPPING:
+			case Transaction_Source_Type::GC_WL:
+				break;
+			default:
+				PRINT_ERROR("TSU_OutOfOrder: unknown source type for a write transaction!")
+			}
+			break;
+		case Transaction_Type::ERASE:
+			break;
+		default:
+			break;
+		}
+	}
+
+    Flash_Transaction_Queue *sourceQueue1 = &current_write_queue;
+
+    // TODO: is this right?
+    extract_and_save_intervals(sourceQueue1);
+    bool found_desire_die = false;
+    std::list<TransactionBound*> transaction_bounds = bound_transactions(sourceQueue1, false);
+    assert(transaction_bounds.size() > 0);
+    stream_id_type stream_id;
+    NVM_Transaction_Flash* transaction;
+    State init_state;
+    State next_state;
+    // TODO: what about rewards? should be hardcoded
+    float reward = 1;
+
+    std::cout << dieBKE << "\n----------------------- " << transaction_bounds.size() << std::endl;
+    for (std::list<TransactionBound*>::iterator bound = transaction_bounds.begin(); bound != transaction_bounds.end(); bound++) {
+        auto tmp_dieBKE = _NVMController->GetDieBookKeepingEntryFromTransations((*bound)->transaction_dispatch_slots.front());
+        std::cout << tmp_dieBKE << std::endl;
+        if (dieBKE != tmp_dieBKE)
+            continue;
+        found_desire_die = true;
+        auto tmp_transaction_dispatch_slots = (*bound)->transaction_dispatch_slots;
+        transaction = tmp_transaction_dispatch_slots.front();
+
+        stream_id = transaction->Stream_id;
+        auto user_intervals = dieBKE->users_intervals_map_.find(stream_id);
+
+        auto current_interval = user_intervals->second->current_interval;
+        auto pervious_interval = user_intervals->second->perivous_interval;
+
+        // TODO: we didnt set init state
+        init_state = transaction->init_state;
+        // TODO: is next_state correct? or we should fetch again from the source queue?
+        next_state = State::GetStateFrom(current_interval, pervious_interval);
+
+        assert(tmp_transaction_dispatch_slots.size() >= transaction->number_of_tr_during_action);
+        if (tmp_transaction_dispatch_slots.size() == transaction->number_of_tr_during_action)
+        {
+            // bad reward
+            reward = -1;
+        }
+        for (const auto& tran : tmp_transaction_dispatch_slots)
+        {
+            tran->does_reward_calculated = true;
+        }
+
+        break;
+    }
+    assert(found_desire_die == true);
+
+    auto user_agent = dieBKE->users_agent.find(stream_id);
+
+    // TODO: Check whetever is this possible or not
+    if (user_agent == dieBKE->users_agent.end())
+    {
+        dieBKE->users_agent[stream_id] = new Agent();
+        user_agent = dieBKE->users_agent.find(stream_id);
+    }
+
+    user_agent->second->updateQ(init_state, next_state, reward, transaction->chosed_action);
 }
 
 void TSU_OutOfOrder::Report_results_in_XML(std::string name_prefix, Utils::XmlWriter &xmlwriter)

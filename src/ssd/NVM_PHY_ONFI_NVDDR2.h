@@ -70,6 +70,9 @@ namespace SSD_Components
         /// ADDED BY S.O.D ///
         std::map<uint16_t, user_intervals_info_t*> users_intervals_map_;
         std::map<uint16_t, Agent*> users_agent;
+        bool should_die_wait = false;
+        bool should_die_schedule_fast = false;
+        NVM::FlashMemory::Flash_Chip* releated_chip;
 
 		void PrepareSuspend()
 		{

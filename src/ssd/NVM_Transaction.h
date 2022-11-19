@@ -84,6 +84,10 @@ namespace SSD_Components
         State init_state;
 
         Action chosed_action;
+        // just in wait case
+        int64_t number_of_tr_during_action = -1;
+
+        bool does_reward_calculated = false;
 
         inline NVM_Transaction_Infos make_necessery_info()
         {
